@@ -267,9 +267,21 @@ export function readDataItem(value: unknown, method: "signDataItem" | "batchSign
   return { data, tags, target, anchor };
 }
 
+/**
+ * The most data items one batch may carry. `batchSignDataItem` decodes and
+ * hashes every item while it builds the approval preview, before
+ * `requestApproval` compares the request's size with its limit, so an
+ * unbounded array would let a connected page choose how much work one call
+ * does.
+ */
+export const MAX_BATCH_DATA_ITEMS = 100;
+
 export function readDataItems(value: unknown): ProviderDataItem[] {
   if (!Array.isArray(value) || value.length === 0) {
     throw new Error("batchSignDataItem requires a non-empty array of data items.");
+  }
+  if (value.length > MAX_BATCH_DATA_ITEMS) {
+    throw new Error(`batchSignDataItem accepts at most ${MAX_BATCH_DATA_ITEMS} data items in one batch.`);
   }
   return value.map((item) => readDataItem(item, "batchSignDataItem"));
 }
