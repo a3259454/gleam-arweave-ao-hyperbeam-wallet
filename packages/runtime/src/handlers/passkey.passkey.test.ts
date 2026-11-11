@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { bytesToBase64Url, type StoragePort } from "@gleam/core";
+import { userErrorMessage } from "@gleam/core/src/models/user-errors.ts";
 import { PasskeyHandler, type PasskeyVault } from "./passkey";
 
 function createFakeStorage(): StoragePort & { store: Map<string, unknown> } {
@@ -93,10 +94,20 @@ describe("PasskeyHandler", () => {
     const vault = fakeVault();
     const handler = new PasskeyHandler(createFakeStorage(), vault);
     await handler.enrollPasskey(ENROLL);
-    vi.mocked(vault.unlockWallet).mockRejectedValueOnce(new Error("That password didn't work."));
+    vi.mocked(vault.unlockWallet).mockRejectedValueOnce(new Error(userErrorMessage("passwordFailed")));
 
     await expect(handler.unlockWithPasskey({ credentialId: "cred-1", prfOutput: PRF })).rejects.toThrow(/no longer matches/);
     expect(await handler.getPasskeyStatus()).toEqual({ enrolled: false });
+  });
+
+  it("keeps the passkey when the vault fails for a reason other than the password", async () => {
+    const vault = fakeVault();
+    const handler = new PasskeyHandler(createFakeStorage(), vault);
+    await handler.enrollPasskey(ENROLL);
+    vi.mocked(vault.unlockWallet).mockRejectedValueOnce(new Error("Gleam couldn't run its password check on this device."));
+
+    await expect(handler.unlockWithPasskey({ credentialId: "cred-1", prfOutput: PRF })).rejects.toThrow(/password check/);
+    expect(await handler.getPasskeyStatus()).toMatchObject({ enrolled: true });
   });
 
   it("forgets the passkey once the vault has no password", async () => {

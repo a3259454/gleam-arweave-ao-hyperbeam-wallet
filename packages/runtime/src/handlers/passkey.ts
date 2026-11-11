@@ -108,10 +108,13 @@ export class PasskeyHandler {
     const password = await unwrapWithPasskey(enrollment, decodePrfOutput(req.prfOutput), enrollment.credentialId);
     try {
       return await this.vault.unlockWallet({ password });
-    } catch {
-      // The wrapped password no longer opens the vault: every wallet it
-      // protected was removed and a new password set. Keeping the passkey
-      // would fail the same way on every unlock.
+    } catch (error) {
+      // Only a password the vault no longer accepts means the enrollment is
+      // stale: every wallet it protected was removed and a new password set.
+      // A KDF, storage or keyring fault reaches here too, and deleting the
+      // passkey for it would cost the user the convenient way in that only
+      // the password can set up again.
+      if (!(error instanceof Error && error.message === userErrorMessage("passwordFailed"))) throw error;
       await this.removePasskey();
       throw new Error(userErrorMessage("passkeyStale"));
     }

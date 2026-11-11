@@ -74,6 +74,13 @@ export async function prepareTransfer(
   if (!/^[A-Za-z0-9_-]{43}$/.test(recipient)) {
     throw new Error(userErrorMessage("transferRecipientInvalid", { recipient }));
   }
+  // The quantity is what gets signed, and the network only accepts a whole
+  // number of Winston. A decimal, exponent or sign would build a transaction
+  // that can never be mined; the UI checks its field, and this is the last
+  // point every caller, the hardware path included, passes through.
+  if (!/^\d+$/.test(amount)) {
+    throw new Error(`A transfer amount must be a whole number of Winston, got "${amount}".`);
+  }
   return buildUnsignedTransaction(gatewayUrl, ownerB64Url, { target: recipient, quantity: amount, reward }, tags);
 }
 

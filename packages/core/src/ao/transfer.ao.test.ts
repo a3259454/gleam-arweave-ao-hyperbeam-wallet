@@ -187,4 +187,10 @@ describe("AO prepareTransfer / finishTransfer", () => {
   it("rejects a process id that isn't a 32-byte Arweave id", () => {
     expect(() => prepareTransfer(jwk.n, "not-an-id", RECIPIENT, "1")).toThrow(/32-byte Arweave id/);
   });
+
+  it("refuses a recipient or quantity the token process would read wrong", () => {
+    expect(() => prepareTransfer(jwk.n, PROCESS_ID, "not-an-id", "1")).toThrow(/recipient must be a 32-byte Arweave id/);
+    expect(() => prepareTransfer(jwk.n, PROCESS_ID, RECIPIENT, "1.5")).toThrow(/whole number/);
+    expect(() => prepareTransfer(jwk.n, PROCESS_ID, RECIPIENT, "-1")).toThrow(/whole number/);
+  });
 });

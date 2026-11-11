@@ -118,6 +118,10 @@ describe("prepareTransfer / finishTransfer", () => {
     expect(calls().some((call) => call.url.includes("price"))).toBe(false);
   });
 
+  it("refuses an amount the network could never mine", async () => {
+    await expect(prepareTransfer("https://arweave.net", jwk.n, TARGET, "1.5", "42")).rejects.toThrow(/whole number of Winston/);
+  });
+
   it("posts a transfer whose signature came from elsewhere, and refuses a wrong one", async () => {
     const calls = recordFetch();
     const unsigned = await prepareTransfer("https://arweave.net", jwk.n, TARGET, "1000", "1234567");
